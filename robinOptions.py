@@ -1,6 +1,5 @@
 from itertools import tee
 from linecache import getline
-from math import gamma
 from msvcrt import kbhit
 import robin_stocks
 import robin_stocks.robinhood as r 
@@ -50,13 +49,24 @@ short_or_long = get_open_option_info("type")
 symbol = get_open_option_info("chain_symbol")
 amount = list(map(get_rounded_amount, get_open_option_info("quantity")))
 
-for o in range(len(general_option_info)):
+"""for o in range(len(general_option_info)):
     print(symbol[o] + " " + str(amount[o]) + " " + short_or_long[o])
     delta  = str(get_greeks(option_id[o], "delta") * amount[o])
     gamma = get_greeks(option_id[o], "gamma") * amount[o]
     theta = get_greeks(option_id[o], "theta") * amount[o]
     vega = get_greeks(option_id[o], "vega") * amount[o]
-    print("Delta: " + delta)
+    print("Delta: " + delta)"""
+
+print(get_option_instrument_data(option_id[0], "strike_price"))
+
+def get_net_delta(ticker=None): # need to fix this to account for tickers + shares of ticker w/ ticker param... <----------
+    
+    for o in range(len(general_option_info)):
+        delta = get_greeks(option_id[o], "delta") * amount[o] #delta list in string form
+        delta = sum(list(map(float, delta))) #conversion to float and summed to account for quantity
+        print(delta * 100)
 
 
-   
+
+
+get_net_delta()
