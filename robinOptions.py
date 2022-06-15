@@ -29,9 +29,9 @@ def get_key_list(dict):
 def get_rounded_amount(amt):
     return round(float(amt))
 
-def get_open_stock_info(ticker=None, key=None): # Returns a list of stocks that are currently held. <---- FIX THEN ADD IMPLEMENTATION OF THIS METHOD
-    return robin_stocks.robinhood.account.get_open_stock_positions(key)
-
+def get_open_stock_info(key=None): # Returns a list of stocks that are currently held. 
+    return robin_stocks.robinhood.account.get_open_stock_positions(key) 
+#   Valid dict_keys list: (['url', 'instrument', 'instrument_id', 'account', 'account_number', 'average_buy_price', 'pending_average_buy_price', 'quantity', 'intraday_average_buy_price', 'intraday_quantity', 'shares_available_for_exercise', 'shares_held_for_buys', 'shares_held_for_sells', 'shares_held_for_stock_grants', 'shares_held_for_options_collateral', 'shares_held_for_options_events', 'shares_pending_from_options_events', 'shares_available_for_closing_short_position', 'ipo_allocated_quantity', 'ipo_dsp_allocated_quantity', 'avg_cost_affected', 'avg_cost_affected_reason', 'is_primary_account', 'updated_at', 'created_at'])
 def get_greeks(id, greek="delta"): #Returns greek value for an option. Valid greek strings are: delta, gamma, theta, rho, vega.
     return robin_stocks.robinhood.options.get_option_market_data_by_id(id, greek)
 
@@ -55,6 +55,9 @@ option_id = get_open_option_info("option_id")
 short_or_long = get_open_option_info("type")
 symbol = get_open_option_info("chain_symbol")
 amount = list(map(get_rounded_amount, get_open_option_info("quantity")))
+
+general_stock_info = get_open_stock_info()
+stock_id = get_open_stock_info("instrument_id")
 
 """for o in range(len(general_option_info)):
     print(symbol[o] + " " + str(amount[o]) + " " + short_or_long[o])
@@ -81,4 +84,5 @@ def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a giv
                 net_delta += delta
     return net_delta
 
-print(get_net_delta("AMD"))
+#print(get_net_delta("AMD"))
+print(get_open_stock_info()[0])
