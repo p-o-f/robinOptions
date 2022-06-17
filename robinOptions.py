@@ -106,4 +106,4 @@ Returns:	Returns a dictionary where the keys are the stock tickers and the value
 """
 
 
-# to do: try to add free level 2 data functionality??
+# to do: try to add free level 2 data functionality?
