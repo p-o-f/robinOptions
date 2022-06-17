@@ -47,10 +47,11 @@ def get_strike_price(id): #Returns strike price of option id passed in
 
 def get_greeks(id, greek="delta"): #Returns greek value for an option. Valid greek strings are: delta, gamma, theta, rho, vega.
     return robin_stocks.robinhood.options.get_option_market_data_by_id(id, greek)
-    
 
-# def account_put_or_call(id)  make function to reverse greeks based on if call or put
-    #return 
+def get_stock_holdings(with_dividends=False, ticker=None):
+    if ticker == None:
+        return robin_stocks.robinhood.account.build_holdings(with_dividends)
+    return get_stock_holdings()[ticker]
 
 # All of the following variables are lists.
 general_option_info = get_open_option_info()
@@ -72,11 +73,13 @@ stock_id = get_open_stock_info("instrument_id")
 
 #print(get_option_instrument_data(option_id[0], "strike_price"))
 
-def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a given ticker. NEED TO FIX TO ACCOUNT FOR SHARES.
+def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a given ticker. 
     net_delta = 0 
-    if ticker == (None):
+    if (ticker is None):
         for o in range(len(general_option_info)):
             delta = get_greeks(option_id[o], "delta") * amount[o] #delta list in string form
+            if (None in delta): #on opex day, this accounts for options no longer existing
+                delta[0] = 0
             delta = sum(list(map(float, delta))) #conversion to float and summed to account for quantity
             net_delta = net_delta+delta if (short_or_long[o] == "long") else net_delta-delta #reverses delta ONLY IF short; eg short put is accounted for as positive delta
         share_delta = get_open_stock_info("quantity") #list of share quantities to add into the net delta
@@ -86,16 +89,20 @@ def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a giv
         for o in range(len(symbol)):
             if symbol[o] == ticker:
                 delta = get_greeks(option_id[o], "delta") * amount[o] #delta list in string form
+                if (None in delta): #on opex day, this accounts for options no longer existing
+                    delta[0] = 0
                 delta = sum(list(map(float, delta))) #conversion to float and summed to account for quantity
                 net_delta = net_delta+delta if (short_or_long[o] == "long") else net_delta-delta #reverses delta ONLY IF short; eg short put is accounted for as positive delta
-        # to do: fix this segment bracket to account for delta of specific ticker
+        share_delta = float(get_stock_holdings(False, ticker)["quantity"])
+        net_delta += (share_delta * 0.01) #0.01 is here because there is x100 multiplication at the end
     return net_delta * 100 # accounts for options 100x multiplier
 
-#print(get_net_delta())
-def get_stock_holdings(with_dividends=False): 
-    return robin_stocks.robinhood.account.build_holdings(with_dividends)
+print(get_net_delta())
 
-print(get_stock_holdings()["AMD"])
+
+
+
+
 
 """ robin_stocks.robinhood.account.build_holdings(with_dividends=False)[source]
 Builds a dictionary of important information regarding the stocks and positions owned by the user.
