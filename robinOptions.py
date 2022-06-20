@@ -97,20 +97,17 @@ def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a giv
         net_delta += (share_delta * 0.01) #0.01 is here because there is x100 multiplication at the end
     return net_delta * 100 # accounts for options 100x multiplier
 
-print(get_net_delta())
+def get_net_greek(greek="delta", ticker=None): #Get net gamma, theta, rho, or vega for a given ticker. Behaves somewhat differently to net delta function, but logic is mostly the same.
+    if (greek == "delta" or ticker is None):
+        return (get_net_delta())
+    net_greek = 0
+    for o in range(len(general_option_info)):
+        current_greek = get_greeks(option_id[o], greek) * amount[o]
+        if (None in current_greek):
+            current_greek[0] = 0
+        current_greek = sum(list(map(float, current_greek)))
+        net_greek = net_greek+current_greek if (short_or_long[o] == "long") else net_greek-current_greek 
+    return net_greek * 100
 
-
-
-
-
-
-""" robin_stocks.robinhood.account.build_holdings(with_dividends=False)[source]
-Builds a dictionary of important information regarding the stocks and positions owned by the user.
-
-Parameters:	with_dividends (bool) – True if you want to include divident information.
-Returns:	Returns a dictionary where the keys are the stock tickers and the value is another dictionary that has the stock price, quantity held, equity, percent change, equity change, type, name, id, pe ratio, percentage of portfolio, and average buy price.
-
-"""
-
-
+print(get_net_greek())
 # to do: try to add free level 2 data functionality?
