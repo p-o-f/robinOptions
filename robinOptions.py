@@ -105,8 +105,8 @@ def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND 
     d = get_net_delta(ticker) # ∂f/∂s, first partial derivative with respect to a change in share price (deltaSP)
     g = get_net_greek("gamma",ticker) # ∂²f/∂s², second partial derivative with respect to a change in share price (deltaSP)
     v = get_net_greek("vega", ticker) # ∂f/∂σ, first partial derivative with respect to a change in volatility (deltaVol)
-    approx = (d * deltaSP) + (0.5 * g * (deltaSP ** 2)) #second degree maclaurin series for delta/gamma
-    approx+= (v * deltaVol) #first degree maclaurin series for volatility
+    approx = (d * deltaSP) + (0.5 * g * (deltaSP ** 2)) #second degree series for delta/gamma
+    approx+= (v * deltaVol) #first degree series for volatility
     return approx #will be inaccurate because it is a trunucated series, IE no omega greek used to make the first series third degree...
 
 print(price_approximation("AMD", 27, 0.01))
