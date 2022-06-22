@@ -64,16 +64,6 @@ amount = list(map(get_rounded_amount, get_open_option_info("quantity")))
 general_stock_info = get_open_stock_info()
 stock_id = get_open_stock_info("instrument_id")
 
-"""for o in range(len(general_option_info)):
-    print(symbol[o] + " " + str(amount[o]) + " " + short_or_long[o])
-    delta  = str(get_greeks(option_id[o], "delta") * amount[o])
-    gamma = get_greeks(option_id[o], "gamma") * amount[o]
-    theta = get_greeks(option_id[o], "theta") * amount[o]
-    vega = get_greeks(option_id[o], "vega") * amount[o]
-    print("Delta: " + delta)"""
-
-#print(get_option_instrument_data(option_id[0], "strike_price"))
-
 def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a given ticker. 
     net_delta = 0 
     if (ticker is None):
@@ -110,12 +100,13 @@ def get_net_greek(greek="delta", ticker=None): #Get net gamma, theta, rho, or ve
         net_greek = net_greek+current_greek if (short_or_long[o] == "long") else net_greek-current_greek 
     return net_greek * 100
 
-print(get_net_delta("AMD"))
 
-def price_approximation(ticker, deltaSP): #Uses a third degree maclaurin series to approximate share price change with options; deltaSP = ∂s
-    d = get_net_delta(ticker) # ∂f/∂s
-    g = get_net_greek("gamma",ticker) # ∂²f/∂s²
-    v = get_net_greek("vega", ticker) # ∂f/∂σ
-    taylor = 0
-    return taylor
-# to do: try to add free level 2 data functionality?
+def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND first degree taylor series centered at deltaSP to approximate option pricing change; deltaSP = ∂s (change in share price, or X - Xo); deltaVol = change in implied vol as a percentage (for example 0.05 = 5% increase in IV)
+    d = get_net_delta(ticker) # ∂f/∂s, first partial derivative with respect to a change in share price (deltaSP)
+    g = get_net_greek("gamma",ticker) # ∂²f/∂s², second partial derivative with respect to a change in share price (deltaSP)
+    v = get_net_greek("vega", ticker) # ∂f/∂σ, first partial derivative with respect to a change in volatility (deltaVol)
+    approx = (d * deltaSP) + (0.5 * g * (deltaSP ** 2)) #second degree maclaurin series for delta/gamma
+    approx+= (v * deltaVol) #first degree maclaurin series for volatility
+    return approx #will be inaccurate because it is a trunucated series, IE no omega greek used to make the first series third degree...
+
+print(price_approximation("AMD", 27, 0.01))
