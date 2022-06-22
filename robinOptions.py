@@ -1,6 +1,7 @@
 from itertools import tee
 from linecache import getline
 from msvcrt import kbhit
+import math
 import robin_stocks
 import robin_stocks.robinhood as r 
 import sys
@@ -109,5 +110,12 @@ def get_net_greek(greek="delta", ticker=None): #Get net gamma, theta, rho, or ve
         net_greek = net_greek+current_greek if (short_or_long[o] == "long") else net_greek-current_greek 
     return net_greek * 100
 
-print(get_net_greek())
+print(get_net_delta("AMD"))
+
+def price_approximation(ticker, deltaSP): #Uses a third degree maclaurin series to approximate share price change with options; deltaSP = ∂s
+    d = get_net_delta(ticker) # ∂f/∂s
+    g = get_net_greek("gamma",ticker) # ∂²f/∂s²
+    v = get_net_greek("vega", ticker) # ∂f/∂σ
+    taylor = 0
+    return taylor
 # to do: try to add free level 2 data functionality?
