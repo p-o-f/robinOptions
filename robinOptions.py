@@ -27,8 +27,8 @@ start(u, p) # If authentication code is not cached, then a code will be prompted
 def get_key_list(dict):
     return dict.keys()
 
-def get_rounded_amount(amt):
-    return round(float(amt))
+def get_rounded_amount(amount, digits=None):
+    return round(float(amount), digits)
 
 def get_open_stock_info(key=None): # Returns a list of stocks that are currently held. 
     return robin_stocks.robinhood.account.get_open_stock_positions(key) 
@@ -86,7 +86,7 @@ def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a giv
                 net_delta = net_delta+delta if (short_or_long[o] == "long") else net_delta-delta #reverses delta ONLY IF short; eg short put is accounted for as positive delta
         share_delta = float(get_stock_holdings(False, ticker)["quantity"])
         net_delta += (share_delta * 0.01) #0.01 is here because there is x100 multiplication at the end
-    return net_delta * 100 # accounts for options 100x multiplier
+    return get_rounded_amount((net_delta * 100), 5) # accounts for options 100x multiplier
 
 def get_net_greek(greek="delta", ticker=None): #Get net gamma, theta, rho, or vega for a given ticker. Behaves somewhat differently to net delta function, but logic is mostly the same.
     if (greek == "delta" or ticker is None):
@@ -98,10 +98,10 @@ def get_net_greek(greek="delta", ticker=None): #Get net gamma, theta, rho, or ve
             current_greek[0] = 0
         current_greek = sum(list(map(float, current_greek)))
         net_greek = net_greek+current_greek if (short_or_long[o] == "long") else net_greek-current_greek 
-    return net_greek * 100
+    return get_rounded_amount((net_greek * 100), 5)
 
 
-def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND first degree taylor series centered at deltaSP to approximate option pricing change; deltaSP = ∂s (change in share price, or X - Xo); deltaVol = change in implied vol as a percentage (for example 0.05 = 5% increase in IV)
+def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND first degree taylor series centered at deltaSP to approximate option pricing change; deltaSP = ∂s (change in share price, or X - Xo); deltaVol = change in implied vol as a percentage (for example 5 = 5% increase in IV)
     d = get_net_delta(ticker) # ∂f/∂s, first partial derivative with respect to a change in share price (deltaSP)
     g = get_net_greek("gamma",ticker) # ∂²f/∂s², second partial derivative with respect to a change in share price (deltaSP)
     v = get_net_greek("vega", ticker) # ∂f/∂σ, first partial derivative with respect to a change in volatility (deltaVol)
@@ -109,4 +109,4 @@ def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND 
     approx+= (v * deltaVol) #first degree series for volatility
     return approx #will be inaccurate because it is a trunucated series, IE no omega greek used to make the first series third degree...
 
-print(price_approximation("AMD", 27, 0.01))
+print(get_net_greek("vega", "AMD"))
