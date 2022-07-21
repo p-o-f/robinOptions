@@ -8,6 +8,7 @@ import sys
 from robin_stocks.robinhood.helper import *
 from robin_stocks.robinhood.urls import *
 from dotenv import load_dotenv
+from multipledispatch import dispatch
 import os 
 load_dotenv()
 newline = "\n"
@@ -39,7 +40,13 @@ def get_open_option_info(key=None):
 #   Valid dict_keys list: (['account', 'average_price', 'chain_id', 'chain_symbol', 'id', 'option', 'type', 'pending_buy_quantity', 'pending_expired_quantity', 'pending_expiration_quantity', 'pending_exercise_quantity', 'pending_assignment_quantity', 'pending_sell_quantity', 'quantity', 'intraday_quantity', 'intraday_average_open_price', 'created_at', 'trade_value_multiplier', 'updated_at', 'url', 'option_id'])
     return open_options
 
-def get_option_instrument_data(id, key=None): # DO STUFF HERE<__--------------------------------
+@dispatch(str, str, str, str, str)
+def get_option_instrument_data(ticker, expirationDate, strikePrice, optionType, key=None): #BY OPTION INFO; 5 parameters
+    option_data = robin_stocks.robinhood.options.get_option_instrument_data(ticker, expirationDate, strikePrice, optionType, key)
+    return option_data
+
+@dispatch(str, str)
+def get_option_instrument_data(id, key=None): #BY ID; 2 parameters
     option_data = robin_stocks.robinhood.options.get_option_instrument_data_by_id(id, key) #Returns the option instrument information.
     return option_data # Valid dict_keys list: (['chain_id', 'chain_symbol', 'created_at', 'expiration_date', 'id', 'issue_date', 'min_ticks', 'rhs_tradability', 'state', 'strike_price', 'tradability', 'type', 'updated_at', 'url', 'sellout_datetime', 'long_strategy_code', 'short_strategy_code'])
 
@@ -65,7 +72,7 @@ general_stock_info = get_open_stock_info()
 stock_id = get_open_stock_info("instrument_id")
 
 def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a given ticker. 
-    net_delta = 0 
+    net_delta = 0
     if (ticker is None):
         for o in range(len(general_option_info)):
             delta = get_greeks(option_id[o], "delta") * amount[o] #delta list in string form
@@ -108,5 +115,10 @@ def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND 
     approx = (d * deltaSP) + (0.5 * g * (deltaSP ** 2)) #second degree series for delta/gamma
     approx+= (v * deltaVol) #first degree series for volatility
     return approx #will be inaccurate because it is a trunucated series, IE no omega greek used to make the first series third degree...
+    
+print(get_net_delta("AMD"))
+print(price_approximation("AMD", (110-90), 2))
 
-print(get_net_greek("vega", "AMD"))
+def get_leverage_factor():
+    multiplier = 0
+    return multiplier
