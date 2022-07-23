@@ -40,15 +40,21 @@ def get_open_option_info(key=None):
 #   Valid dict_keys list: (['account', 'average_price', 'chain_id', 'chain_symbol', 'id', 'option', 'type', 'pending_buy_quantity', 'pending_expired_quantity', 'pending_expiration_quantity', 'pending_exercise_quantity', 'pending_assignment_quantity', 'pending_sell_quantity', 'quantity', 'intraday_quantity', 'intraday_average_open_price', 'created_at', 'trade_value_multiplier', 'updated_at', 'url', 'option_id'])
     return open_options
 
+@dispatch(str, str, str, str)
+def get_option_instrument_data(ticker, expirationDate, strikePrice, optionType): #BY OPTION INFO; 4 parameters
+    option_data = robin_stocks.robinhood.options.get_option_instrument_data(ticker, expirationDate, strikePrice, optionType)
+#   Valid dict_keys list: (['chain_id', 'chain_symbol', 'created_at', 'expiration_date', 'id', 'issue_date', 'min_ticks', 'rhs_tradability', 'state', 'strike_price', 'tradability', 'type', 'updated_at', 'url', 'sellout_datetime', 'long_strategy_code', 'short_strategy_code'])
+    return option_data
+
 @dispatch(str, str, str, str, str)
-def get_option_instrument_data(ticker, expirationDate, strikePrice, optionType, key=None): #BY OPTION INFO; 5 parameters
+def get_option_instrument_data(ticker, expirationDate, strikePrice, optionType, key): #BY OPTION INFO; 5 parameters
     option_data = robin_stocks.robinhood.options.get_option_instrument_data(ticker, expirationDate, strikePrice, optionType, key)
     return option_data
 
 @dispatch(str, str)
 def get_option_instrument_data(id, key=None): #BY ID; 2 parameters
     option_data = robin_stocks.robinhood.options.get_option_instrument_data_by_id(id, key) #Returns the option instrument information.
-    return option_data # Valid dict_keys list: (['chain_id', 'chain_symbol', 'created_at', 'expiration_date', 'id', 'issue_date', 'min_ticks', 'rhs_tradability', 'state', 'strike_price', 'tradability', 'type', 'updated_at', 'url', 'sellout_datetime', 'long_strategy_code', 'short_strategy_code'])
+    return option_data 
 
 def get_strike_price(id): #Returns strike price of option id passed in
     return get_option_instrument_data(id, "strike_price")
@@ -60,6 +66,10 @@ def get_stock_holdings(with_dividends=False, ticker=None):
     if ticker == None:
         return robin_stocks.robinhood.account.build_holdings(with_dividends)
     return get_stock_holdings()[ticker]
+
+def get_stock_price(ticker, priceType=None, includeExtendedHours = True): #Price Type is either "bid" or "ask"
+    return robin_stocks.robinhood.stocks.get_latest_price(ticker, priceType, includeExtendedHours)
+
 
 # All of the following variables are lists.
 general_option_info = get_open_option_info()
@@ -114,11 +124,23 @@ def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND 
     v = get_net_greek("vega", ticker) # ∂f/∂σ, first partial derivative with respect to a change in volatility (deltaVol)
     approx = (d * deltaSP) + (0.5 * g * (deltaSP ** 2)) #second degree series for delta/gamma
     approx+= (v * deltaVol) #first degree series for volatility
-    return approx #will be inaccurate because it is a trunucated series, IE no omega greek used to make the first series third degree...
+    return approx #will be inaccurate because it is a trunucated series, IE no omega greek used to make the first series third degree.
     
-print(get_net_delta("AMD"))
-print(price_approximation("AMD", (110-90), 2))
+#print(get_net_delta("AMD"))
+#print(price_approximation("AMD", (110-90), 2))
 
 def get_leverage_factor():
     multiplier = 0
     return multiplier
+
+def get_news():
+    return 0
+
+def get_most_liquid():
+    return 0
+
+# 568 dollar call, 24 delta, stock is 99
+# controls $2376 worth of stock
+# multipllier is 2376 / 568
+print(get_option_instrument_data("AMD", "2022-07-29", "85", "call", "chain_id"))
+print(get_stock_price("AMD"))
