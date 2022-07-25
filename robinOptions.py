@@ -62,6 +62,10 @@ def get_strike_price(id): #Returns strike price of option id passed in
 def get_greeks(id, greek="delta"): #Returns greek value for an option. Valid greek strings are: delta, gamma, theta, rho, vega.
     return robin_stocks.robinhood.options.get_option_market_data_by_id(id, greek)
 
+def get_option_data(id, key=None): 
+    return robin_stocks.robinhood.options.get_option_market_data_by_id(id, key)
+#   Valid dict_keys list: (['adjusted_mark_price', 'adjusted_mark_price_round_down', 'ask_price', 'ask_size', 'bid_price', 'bid_size', 'break_even_price', 'high_price', 'instrument', 'instrument_id', 'last_trade_price', 'last_trade_size', 'low_price', 'mark_price', 'open_interest', 'previous_close_date', 'previous_close_price', 'updated_at', 'volume', 'symbol', 'occ_symbol', 'state', 'chance_of_profit_long', 'chance_of_profit_short', 'delta', 'gamma', 'implied_volatility', 'rho', 'theta', 'vega', 'high_fill_rate_buy_price', 'high_fill_rate_sell_price', 'low_fill_rate_buy_price', 'low_fill_rate_sell_price'])
+
 def get_stock_holdings(with_dividends=False, ticker=None):
     if ticker == None:
         return robin_stocks.robinhood.account.build_holdings(with_dividends)
@@ -129,9 +133,13 @@ def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND 
 #print(get_net_delta("AMD"))
 #print(price_approximation("AMD", (110-90), 2))
 
-def get_leverage_factor():
-    multiplier = 0
-    return multiplier
+def get_leverage_factor(ticker, expiry, strike, t): #TODO add comments since this is barbaric 
+    id = get_option_instrument_data(ticker, expiry, strike, t, "id")
+    delta = 100 * float(get_greeks(id)[0]) #returns option ID of passed in option parameters, then returns delta of that option
+    option_price = 100 * float(get_option_data(id, "ask_price")[0])
+    stock_price =  float(get_stock_price(ticker)[0])
+    multiplier = (stock_price * delta)/option_price
+    return get_rounded_amount(multiplier, 3)
 
 def get_news():
     return 0
@@ -142,5 +150,5 @@ def get_most_liquid():
 # 568 dollar call, 24 delta, stock is 99
 # controls $2376 worth of stock
 # multipllier is 2376 / 568
-print(get_option_instrument_data("AMD", "2022-07-29", "85", "call", "chain_id"))
-print(get_stock_price("AMD"))
+deez = get_leverage_factor("AMD", "2022-07-29", "85", "call")
+print(deez)
