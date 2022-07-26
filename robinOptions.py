@@ -72,7 +72,8 @@ def get_stock_holdings(with_dividends=False, ticker=None):
     return get_stock_holdings()[ticker]
 
 def get_stock_price(ticker, priceType=None, includeExtendedHours = True): #Price Type is either "bid" or "ask"
-    return robin_stocks.robinhood.stocks.get_latest_price(ticker, priceType, includeExtendedHours)
+    ret = robin_stocks.robinhood.stocks.get_latest_price(ticker, priceType, includeExtendedHours)[0]
+    return float(ret)
 
 
 # All of the following variables are lists.
@@ -133,13 +134,13 @@ def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND 
 #print(get_net_delta("AMD"))
 #print(price_approximation("AMD", (110-90), 2))
 
-def get_leverage_factor(ticker, expiry, strike, t): #TODO add comments since this is barbaric 
-    id = get_option_instrument_data(ticker, expiry, strike, t, "id")
-    delta = 100 * float(get_greeks(id)[0]) #returns option ID of passed in option parameters, then returns delta of that option
-    option_price = 100 * float(get_option_data(id, "ask_price")[0])
-    stock_price =  float(get_stock_price(ticker)[0])
-    multiplier = (stock_price * delta)/option_price
-    return get_rounded_amount(multiplier, 3)
+def get_leverage_factor(ticker, expiry, strike, type): # Expiry format is YYYY-MM-DD like 2022-07-29; type is "call" or "put"
+    id = get_option_instrument_data(ticker, expiry, strike, type, "id") # This is done by ID because the API for getting option instrument market data off of options parameters returns a list rather than dictionary (inconvenient)
+    delta = 100 * float(get_greeks(id)[0]) # Returns option ID of passed in option parameters, then returns delta of that option
+    option_price = 100 * float(get_option_data(id, "ask_price")[0]) # Get option price by id; uses ask price because this is the most likely to be filled rather than the bid or mid prices
+    stock_price =  get_stock_price(ticker)
+    multiplier = (stock_price * delta)/option_price # Leverage factor 
+    return get_rounded_amount(multiplier, 3) # Rounded leverage factor
 
 def get_news():
     return 0
@@ -147,5 +148,8 @@ def get_news():
 def get_most_liquid():
     return 0
 
-def get_future_ttm_pe(ticker): # get adjusted TTM pe upon next earnings report for a stock
+def get_future_ttm_pe(ticker): #TODO get adjusted TTM pe upon next earnings report for a stock
     return ticker
+
+print(get_stock_price("AMD"))
+print(get_leverage_factor("AMD", "2022-07-29", "85", "call"))
