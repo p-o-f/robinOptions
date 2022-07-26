@@ -147,8 +147,5 @@ def get_news():
 def get_most_liquid():
     return 0
 
-# 568 dollar call, 24 delta, stock is 99
-# controls $2376 worth of stock
-# multipllier is 2376 / 568
-deez = get_leverage_factor("AMD", "2022-07-29", "85", "call")
-print(deez)
+def get_future_ttm_pe(ticker): # get adjusted TTM pe upon next earnings report for a stock
+    return ticker
