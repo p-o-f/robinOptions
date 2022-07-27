@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from multipledispatch import dispatch
 import os 
 load_dotenv()
-newline = "\n"
+
 u = os.environ.get('rh_username')
 p = os.environ.get('rh_password')
 
@@ -22,9 +22,9 @@ def start(email, pw):
     except:
         print("Error while trying to login.")
 
-start(u, p) # If authentication code is not cached, then a code will be prompted for the user to enter.
+start(u, p) # If authentication code is not cached, then a code will be prompted for the user to enter
 
-# Development methods/relevant documentation | https://robin-stocks.readthedocs.io/en/latest/robinhood.html
+# Developmental methods/relevant documentation | https://robin-stocks.readthedocs.io/en/latest/robinhood.html
 def get_key_list(dict):
     return dict.keys()
 
@@ -71,46 +71,45 @@ def get_stock_holdings(with_dividends=False, ticker=None):
         return robin_stocks.robinhood.account.build_holdings(with_dividends)
     return get_stock_holdings()[ticker]
 
-def get_stock_price(ticker, priceType=None, includeExtendedHours = True): #Price Type is either "bid" or "ask"
+def get_stock_price(ticker, priceType=None, includeExtendedHours = True): # Price Type is optional and is either "bid" or "ask", this will set includeExtendedHours to false automatically if passed in
     ret = robin_stocks.robinhood.stocks.get_latest_price(ticker, priceType, includeExtendedHours)[0]
     return float(ret)
 
-
-# All of the following variables are lists.
+# All of the following variables are lists
 general_option_info = get_open_option_info()
 option_id = get_open_option_info("option_id")
 short_or_long = get_open_option_info("type")
 symbol = get_open_option_info("chain_symbol")
 amount = list(map(get_rounded_amount, get_open_option_info("quantity")))
+#general_stock_info = get_open_stock_info()
+#stock_id = get_open_stock_info("instrument_id")
 
-general_stock_info = get_open_stock_info()
-stock_id = get_open_stock_info("instrument_id")
-
+# The main methods for adding functionality to Robinhood
 def get_net_delta(ticker=None): # Get portfolio net delta or net delta for a given ticker. 
     net_delta = 0
     if (ticker is None):
         for o in range(len(general_option_info)):
-            delta = get_greeks(option_id[o], "delta") * amount[o] #delta list in string form
-            if (None in delta): #on opex day, this accounts for options no longer existing
+            delta = get_greeks(option_id[o], "delta") * amount[o] # Delta list in string form
+            if (None in delta): # On opex day, this accounts for options no longer existing
                 delta[0] = 0
-            delta = sum(list(map(float, delta))) #conversion to float and summed to account for quantity
-            net_delta = net_delta+delta if (short_or_long[o] == "long") else net_delta-delta #reverses delta ONLY IF short; eg short put is accounted for as positive delta
-        share_delta = get_open_stock_info("quantity") #list of share quantities to add into the net delta
-        share_delta = sum(list(map(float, share_delta))) #convert list of strings to floats
-        net_delta += (share_delta * 0.01) #0.01 is here because there is x100 multiplication at the end
+            delta = sum(list(map(float, delta))) # Conversion to float and summed to account for quantity
+            net_delta = net_delta+delta if (short_or_long[o] == "long") else net_delta-delta # Reverses delta ONLY IF short; eg short put is accounted for as positive delta
+        share_delta = get_open_stock_info("quantity") # List of share quantities to add into the net delta
+        share_delta = sum(list(map(float, share_delta))) # Convert list of strings to floats
+        net_delta += (share_delta * 0.01) # 0.01 is here because there is x100 multiplication at the end
     else:
         for o in range(len(symbol)):
             if symbol[o] == ticker:
-                delta = get_greeks(option_id[o], "delta") * amount[o] #delta list in string form
-                if (None in delta): #on opex day, this accounts for options no longer existing
+                delta = get_greeks(option_id[o], "delta") * amount[o] # Delta list in string form
+                if (None in delta): # On opex day, this accounts for options no longer existing
                     delta[0] = 0
-                delta = sum(list(map(float, delta))) #conversion to float and summed to account for quantity
-                net_delta = net_delta+delta if (short_or_long[o] == "long") else net_delta-delta #reverses delta ONLY IF short; eg short put is accounted for as positive delta
+                delta = sum(list(map(float, delta))) # Conversion to float and summed to account for quantity
+                net_delta = net_delta+delta if (short_or_long[o] == "long") else net_delta-delta # Reverses delta ONLY IF short; eg short put is accounted for as positive delta
         share_delta = float(get_stock_holdings(False, ticker)["quantity"])
-        net_delta += (share_delta * 0.01) #0.01 is here because there is x100 multiplication at the end
-    return get_rounded_amount((net_delta * 100), 5) # accounts for options 100x multiplier
+        net_delta += (share_delta * 0.01) # 0.01 is here because there is x100 multiplication at the end
+    return get_rounded_amount((net_delta * 100), 5) # Accounts for options 100x multiplier
 
-def get_net_greek(greek="delta", ticker=None): #Get net gamma, theta, rho, or vega for a given ticker. Behaves somewhat differently to net delta function, but logic is mostly the same.
+def get_net_greek(greek="delta", ticker=None): # Get net gamma, theta, rho, or vega for a given ticker. The logic is similar to the net delta function, but this is its own function because shares affect portfolio net delta but do not affect the other major greeks.
     if (greek == "delta" or ticker is None):
         return (get_net_delta())
     net_greek = 0
@@ -122,19 +121,15 @@ def get_net_greek(greek="delta", ticker=None): #Get net gamma, theta, rho, or ve
         net_greek = net_greek+current_greek if (short_or_long[o] == "long") else net_greek-current_greek 
     return get_rounded_amount((net_greek * 100), 5)
 
+def price_approximation(ticker, deltaSP, deltaVol = 0): # Uses second degree and first degree Taylor series centered at deltaSP to approximate pricing change of the entire portfolio given a change in stock price/implied volatility; deltaSP = ∂s (change in share price, or X - Xo); deltaVol = change in implied vol. as a percentage (for example 5 = 5% increase in IV)
+    d = get_net_delta(ticker) # ∂f/∂s
+    g = get_net_greek("gamma",ticker) # ∂²f/∂s²
+    v = get_net_greek("vega", ticker) # ∂f/∂σ
+    approx = (d * deltaSP) + (0.5 * g * (deltaSP ** 2)) # Second degree series for delta/gamma
+    approx += (v * deltaVol) # First degree series for volatility
+    return approx # This will be inaccurate because it is a trunucated series - IE no omega greek used to make the first series third degree.
 
-def price_approximation(ticker, deltaSP, deltaVol = 0): #Uses second degree AND first degree taylor series centered at deltaSP to approximate option pricing change; deltaSP = ∂s (change in share price, or X - Xo); deltaVol = change in implied vol as a percentage (for example 5 = 5% increase in IV)
-    d = get_net_delta(ticker) # ∂f/∂s, first partial derivative with respect to a change in share price (deltaSP)
-    g = get_net_greek("gamma",ticker) # ∂²f/∂s², second partial derivative with respect to a change in share price (deltaSP)
-    v = get_net_greek("vega", ticker) # ∂f/∂σ, first partial derivative with respect to a change in volatility (deltaVol)
-    approx = (d * deltaSP) + (0.5 * g * (deltaSP ** 2)) #second degree series for delta/gamma
-    approx+= (v * deltaVol) #first degree series for volatility
-    return approx #will be inaccurate because it is a trunucated series, IE no omega greek used to make the first series third degree.
-    
-#print(get_net_delta("AMD"))
-#print(price_approximation("AMD", (110-90), 2))
-
-def get_leverage_factor(ticker, expiry, strike, type): # Expiry format is YYYY-MM-DD like 2022-07-29; type is "call" or "put"
+def get_leverage_factor(ticker, expiry, strike, type="call"): # Returns the leverage factor of an option; if it's 13.43 for example, the option provides 13.43x leverage versus buying plain shares of stock. Expiry format is YYYY-MM-DD like 2022-07-29; type is "call" or "put"
     id = get_option_instrument_data(ticker, expiry, strike, type, "id") # This is done by ID because the API for getting option instrument market data off of options parameters returns a list rather than dictionary (inconvenient)
     delta = 100 * float(get_greeks(id)[0]) # Returns option ID of passed in option parameters, then returns delta of that option
     option_price = 100 * float(get_option_data(id, "ask_price")[0]) # Get option price by id; uses ask price because this is the most likely to be filled rather than the bid or mid prices
@@ -142,14 +137,11 @@ def get_leverage_factor(ticker, expiry, strike, type): # Expiry format is YYYY-M
     multiplier = (stock_price * delta)/option_price # Leverage factor 
     return get_rounded_amount(multiplier, 3) # Rounded leverage factor
 
-def get_news():
+def get_most_liquid(ticker, expiry): # For a given ticker and options expiration date, find either the most liquid call or put. Considers both open interest and volume.
     return 0
 
-def get_most_liquid():
-    return 0
-
-def get_future_ttm_pe(ticker): #TODO get adjusted TTM pe upon next earnings report for a stock
+def get_future_ttm_pe(ticker, predicted=None): # For a given ticker, return the new expected trailing 12 months P/E ratio after the company reports its next earnings based off of expected EPS. This gives a middleground of the P/E between TTM and forward.
     return ticker
 
 print(get_stock_price("AMD"))
-print(get_leverage_factor("AMD", "2022-07-29", "85", "call"))
+print(get_leverage_factor("AMD", "2022-07-29", "75", "call"))
