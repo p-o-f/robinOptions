@@ -1,7 +1,10 @@
+from ast import Continue
+from configparser import NoOptionError
 from itertools import tee
 from linecache import getline
 from msvcrt import kbhit
 import math
+from operator import truediv
 import robin_stocks
 import robin_stocks.robinhood as r 
 import sys
@@ -71,9 +74,17 @@ def get_stock_holdings(with_dividends=False, ticker=None):
         return robin_stocks.robinhood.account.build_holdings(with_dividends)
     return get_stock_holdings()[ticker]
 
+def get_quotes(ticker, key="last_trade_price"): # Takes any number of stock tickers and returns information pertaining to its price.
+    return robin_stocks.robinhood.stocks.get_quotes(ticker, key)
+#   Valid dict_keys list: (['ask_price', 'ask_size', 'bid_price', 'bid_size', 'last_trade_price', 'last_extended_hours_trade_price', 'previous_close', 'adjusted_previous_close', 'previous_close_date', 'symbol', 'trading_halted', 'has_traded', 'last_trade_price_source', 'updated_at', 'instrument', 'instrument_id', 'state'])
+
 def get_stock_price(ticker, priceType=None, includeExtendedHours = True): # Price Type is optional and is either "bid" or "ask", this will set includeExtendedHours to false automatically if passed in
-    ret = robin_stocks.robinhood.stocks.get_latest_price(ticker, priceType, includeExtendedHours)[0]
-    return float(ret)
+    try: 
+        ret = robin_stocks.robinhood.stocks.get_latest_price(ticker, priceType, includeExtendedHours)[0]
+        return float(ret)
+    except: # This will run if there is no bid or ask for the stock at the moment
+        ret = get_quotes("ticker")[0]
+        return float(ret)
 
 # All of the following variables are lists
 general_option_info = get_open_option_info()
@@ -121,7 +132,7 @@ def get_net_greek(greek="delta", ticker=None): # Get net gamma, theta, rho, or v
         net_greek = net_greek+current_greek if (short_or_long[o] == "long") else net_greek-current_greek 
     return get_rounded_amount((net_greek * 100), 5)
 
-def price_approximation(ticker, deltaSP, deltaVol = 0): # Uses second degree and first degree Taylor series centered at deltaSP to approximate pricing change of the entire portfolio given a change in stock price/implied volatility; deltaSP = ∂s (change in share price, or X - Xo); deltaVol = change in implied vol. as a percentage (for example 5 = 5% increase in IV)
+def price_approximation(ticker, deltaSP, deltaVol = 0): # Uses second degree and first degree Taylor series (centered at deltaSP and deltaVol respectively) to approximate pricing change of the entire portfolio given a change in stock price/implied volatility; deltaSP = ∂s (change in share price, or X - Xo); deltaVol = change in implied vol. as a percentage (for example 5 = 5% increase in IV)
     d = get_net_delta(ticker) # ∂f/∂s
     g = get_net_greek("gamma",ticker) # ∂²f/∂s²
     v = get_net_greek("vega", ticker) # ∂f/∂σ
@@ -140,8 +151,48 @@ def get_leverage_factor(ticker, expiry, strike, type="call"): # Returns the leve
 def get_most_liquid(ticker, expiry): # For a given ticker and options expiration date, find either the most liquid call or put. Considers both open interest and volume.
     return 0
 
-def get_future_ttm_pe(ticker, predicted=None): # For a given ticker, return the new expected trailing 12 months P/E ratio after the company reports its next earnings based off of expected EPS. This gives a middleground of the P/E between TTM and forward.
-    return ticker
+#print(get_net_delta("AMD"))
+#break_check = price_approximation("AMD", 113-94.6, 4)
+#print(break_check)
 
-print(get_stock_price("AMD"))
-print(get_leverage_factor("AMD", "2022-07-29", "75", "call"))
+def get_eps(ticker, key="eps", quarters=4, estimate = False): # Get cumulative EPS of a ticker for a specified number of quarters; If estimate is set to true the analyst estimated earnings for the upcoming quarter will be accounted for in the # of quarters
+    eps_list = (robin_stocks.robinhood.stocks.get_earnings(symbol[0], key))
+    eps_list.reverse()
+    eps = 0
+    counter = 0
+    if (estimate == False):
+        for e in range(len(eps_list)):
+            current = eps_list[e] # current dictionary, contains actual/estimated eps (descending order by recent quarter)
+            act = current.get("actual")
+            if (act is None):
+                Continue
+            else:
+                eps += float(act)
+                counter = counter + 1
+            if (counter == quarters):
+                break
+        return eps
+    else:
+        next_qrter_est = 0;
+        for e in range(len(eps_list)):
+            current = eps_list[e]
+            if (current.get("estimate") is None):
+                continue
+            else:
+                next_qrter_est = float(current.get("estimate"))
+                break
+        realized_eps = get_eps(ticker, "eps", quarters-1, False)
+        next_qrter_est += realized_eps
+        return next_qrter_est
+
+def get_pe_ratio(ticker, TTM = True): # For a given ticker, return the new expected trailing 12 months P/E ratio after the company reports its next earnings based off of expected EPS. This gives a middleground of the P/E between TTM and forward.
+    sp = get_stock_price(ticker)
+    if (TTM == True):
+        eps = get_eps(ticker)
+        return get_rounded_amount(sp/eps, 2)
+    else:
+        eps = get_eps(ticker, "eps", 4, True)
+        return get_rounded_amount(sp/eps, 2)
+
+print("The PE of AMD after next earnings reports, if analyst estimates are met, will be:")
+print(get_pe_ratio("AMD", False))
