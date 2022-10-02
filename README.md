@@ -3,7 +3,7 @@ Extends the availability of information in Robinhood, specifically with options.
 https://robin-stocks.readthedocs.io/en/latest/intro.html#license
 
 Use case:
-- Robinhood provides a superficial and incomplete view of critical data relating to options contracts. As an example, it is inconvenient that you are unable to view the net delta position of your portfolio for a given stock ticker at a glance. This is a simple feature that comes with other brokerages like ThinkOrSwim, Fidelity, etc. Thus, this simple program aims to supplement availiability of options data in Robinhood with the help of the Robinhood API. 
+- Robinhood provides a superficial and incomplete view of critical data relating to options contracts. As an example, it is inconvenient that you are unable to view the net delta position of your portfolio for a given stock ticker at a glance. This is a standard feature that comes with other brokerages like ThinkOrSwim, Fidelity, etc. Thus, this program aims to supplement availiability of options data in Robinhood with the help of the Robinhood API. 
 - Since this is mainly for personal use, and is dependent on many API calls, speed and runtime are not critical priorities.
 
 Features:
