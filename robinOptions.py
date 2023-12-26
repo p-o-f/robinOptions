@@ -172,7 +172,7 @@ def get_pe_ratio(ticker, ttm = True): # For a given ticker, return the new expec
 
 
 
-# Some examples of what you could use this for - $AMD is used as an example ticker because I have a varied position of shares and many options in their stock. #
+# Some examples of what you could use this for - $AMD is used as an example ticker. #
 TTM_PE = get_pe_ratio("AMD")
 Intermediate_PE = get_pe_ratio("AMD", False)
 Net_Delta = get_net_delta("AMD")
